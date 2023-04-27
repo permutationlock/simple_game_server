@@ -5,6 +5,8 @@ extern void** malloc_test();
 extern void free_test(void**);
 extern void** fbaa_malloc_test();
 extern void fbaa_free_test(void**);
+extern void** ring_fbaa_malloc_test();
+extern void ring_fbaa_free_test(void**);
 
 void test_malloc() {
     void** mem = malloc_test();
@@ -14,6 +16,11 @@ void test_malloc() {
 void test_fbaa() {
     void** mem = fbaa_malloc_test();
     fbaa_free_test(mem);
+}
+
+void test_ring_fbaa() {
+    void** mem = ring_fbaa_malloc_test();
+    ring_fbaa_free_test(mem);
 }
 
 void time_fn(void (*f)(void)) {
@@ -41,4 +48,7 @@ int main() {
     printf("\n\n");
     printf("TESTING FBAA_MALLOC:\n");
     time_fn(test_fbaa);
+    printf("\n\n");
+    printf("TESTING RING_FBAA_MALLOC:\n");
+    time_fn(test_ring_fbaa);
 }

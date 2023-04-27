@@ -4,10 +4,10 @@
 #include "ring_buffer.h"
 
 typedef struct {
-    unsigned int block_size, size;
+    int size, block_size;
     ring_buffer_t flist_rb;
-    unsigned int* flist_mem;
-    unsigned int* full_blocks;
+    int* flist_mem;
+    int* full_blocks;
     void* memory;
 } fixed_block_array_alloc_t;
 
@@ -16,14 +16,22 @@ void fbaa_clear(
 );
 void fbaa_init(
     fixed_block_array_alloc_t* allocator,
-    unsigned int* flist_mem,
-    unsigned int* fblock_mem,
-    void* mem,
-    unsigned int size,
-    unsigned int block_size
+    int* flist_mem,
+    int* fblock_mem,
+    void* memory,
+    int size,
+    int block_size
 );
 void* fbaa_malloc(fixed_block_array_alloc_t* allocator);
-void fbaa_free(fixed_block_array_alloc_t* allocator, void* mem);
-unsigned int fbaa_available(fixed_block_array_alloc_t* allocator);
+int fbaa_malloc_index(fixed_block_array_alloc_t* allocator);
+void fbaa_free(
+    fixed_block_array_alloc_t* allocator,
+    void* mem
+);
+void fbaa_free_index(
+    fixed_block_array_alloc_t* allocator,
+    int block_index
+);
+int fbaa_available(fixed_block_array_alloc_t* allocator);
 
 #endif // SGS_FIXED_BLOCK_ARRAY_ALLOC_H

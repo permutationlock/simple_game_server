@@ -1,109 +1,124 @@
 #include <stdio.h>
-#include "ring_buffer.h"
 #include "linked_list.h"
+#include "fixed_block_array_allocator.h"
 
 #define MEM_SIZE 8
 
+typedef struct ll_in_node_t {
+    struct ll_in_node_t* prev;
+    struct ll_in_node_t* next;
+    int val;
+} ll_int_node_t;
+
 typedef struct {
     fixed_block_array_alloc_t alloc;
-    unsigned int flist_mem[MEM_SIZE];
-    unsigned int fblock_mem[MEM_SIZE];
-    point_t memory[MEM_SIZE];
-} point_allocator_t;
+    int flist_mem[MEM_SIZE];
+    int fblock_mem[MEM_SIZE];
+    ll_int_node_t memory[MEM_SIZE];
+} ll_allocator_t;
 
-point_allocator_t point_allocator;
+ll_allocator_t ll_allocator;
 
-point_t* point_malloc() {
-    return (point_t*) fbaa_malloc(&(point_allocator.alloc));
+ll_int_node_t* ll_malloc() {
+    return (ll_int_node_t*) fbaa_malloc(&(ll_allocator.alloc));
 }
 
-void point_free(point_t* point) {
-    fbaa_free(&(point_allocator.alloc), (void*) point);
+void ll_free(ll_int_node_t* node) {
+    fbaa_free(&(ll_allocator.alloc), (void*) node);
 }
 
 void assert_sfb(
-    int_ring_buffer_t* buffer,
-    unsigned int size,
-    unsigned int front,
-    unsigned int back
+    linked_list_t* ll,
+    int size,
+    int front,
+    int back
 ) {
-    unsigned int asize = irb_size(buffer);
+    int afront, aback;
+    ll_int_node_t* node;
+
+    int asize = ll_size(ll);
     if(size != asize) {
         printf(
-            "ERROR: buffer size not %d: %d\n",
+            "ERROR: list size not %d: %d\n",
             size,
             asize
         );
     }
-    unsigned int afront = irb_front(buffer);
-    if(front != afront) {
+    node  = (ll_int_node_t*)ll_first(ll);
+    if(node != (ll_int_node_t*)0) {
+        afront = node->val;
+    }
+    if(node == (ll_int_node_t*)0) {
+        if(front != -1) {
+            printf(
+                "ERROR: list first was null\n"
+            );
+        }
+    } else if(front != afront) {
         printf(
-            "ERROR: buffer front not %d: %d\n",
+            "ERROR: list first not %d: %d\n",
             front,
             afront
         );
     }
-    unsigned int aback = irb_back(buffer);
-    if(back != aback) {
+    node  = (ll_int_node_t*)ll_last(ll);
+    if(node != (ll_int_node_t*)0) {
+        aback = node->val;
+    }
+    if(node == (ll_int_node_t*)0) {
+        if(back != -1) {
+            printf(
+                "ERROR: list last was null\n"
+            );
+        }
+    } else if(back != aback) {
         printf(
-            "ERROR: buffer back not %d: %d\n",
-            back,
-            aback
+            "ERROR: list last not %d: %d\n",
+            front,
+            afront
         );
     }
 }
 
-void irb_test() {
-    printf("IRB TEST:\n");
-    unsigned int buffer_mem[MEM_SIZE];
-    int_ring_buffer_t buffer;
-    irb_init(&buffer, buffer_mem, MEM_SIZE);
-    printf("STEP: initializing irb\n");
-    unsigned int size = irb_size(&buffer);
+void ll_test() {
+    printf("LL TEST:\n");
+    fbaa_init(
+        &(ll_allocator.alloc),
+        ll_allocator.flist_mem,
+        ll_allocator.fblock_mem,
+        ll_allocator.memory,
+        MEM_SIZE,
+        sizeof(ll_int_node_t)
+    );
+    linked_list_t list;
+    printf("STEP: initializing list\n");
+    ll_init(&list);
+    int size = ll_size(&list);
     if(size != 0) {
-        printf("ERROR: initial buffer size nonzero: %d\n", size);
+        printf("ERROR: initial list size nonzero: %d\n", size);
     }
     printf("STEP: pushing 11\n");
-    irb_push_back(&buffer, 11);
-    assert_sfb(&buffer, 1, 11, 11);
+    ll_int_node_t* node = ll_malloc();
+    node->val = 11;
+    ll_push_back(&list, (linked_list_node_t*)node);
+    assert_sfb(&list, 1, 11, 11);
     printf("STEP: pushing 22\n");
-    irb_push_back(&buffer, 22);
-    assert_sfb(&buffer, 2, 11, 22);
+    node = (ll_int_node_t*)ll_malloc();
+    node->val = 22;
+    ll_push_back(&list, (linked_list_node_t*)node);
+    assert_sfb(&list, 2, 11, 22);
     printf("STEP: popping front\n");
-    irb_pop_front(&buffer);
-    assert_sfb(&buffer, 1, 22, 22);
-    printf("STEP: pushing 33\n");
-    irb_push_back(&buffer, 33);
-    assert_sfb(&buffer, 2, 22, 33);
-    printf("STEP: pushing 44\n");
-    irb_push_back(&buffer, 44);
-    assert_sfb(&buffer, 3, 22, 44);
-}
-
-typedef struct {
-    fixed_block_array_alloc_t alloc;
-    unsigned int flist_mem[MEM_SIZE];
-    unsigned int fblock_mem[MEM_SIZE];
-    point_t memory[MEM_SIZE];
-} point_allocator_t;
-
-point_allocator_t point_allocator;
-
-point_t* point_malloc() {
-    return (point_t*) fbaa_malloc(&(point_allocator.alloc));
-}
-
-void point_free(point_t* point) {
-    fbaa_free(&(point_allocator.alloc), (void*) point);
-}
-
-void print_mem(unsigned int* mem, unsigned int size) {
-    for(int i = 0; i < size; ++i) {
-        printf("\t%d\n", mem[i]);
-    }
+    node = (ll_int_node_t*)ll_first(&list);
+    ll_delete(&list, (linked_list_node_t*)node);
+    ll_free(node);
+    assert_sfb(&list, 1, 22, 22);
+    printf("STEP: popping front\n");
+    node = (ll_int_node_t*)ll_last(&list);
+    ll_delete(&list, (linked_list_node_t*)node);
+    ll_free(node);
+    assert_sfb(&list, 0, -1, -1);
 }
 
 int main() {
-    irb_test();
-    fbaa_test();
+    ll_test();
 }

@@ -1,101 +1,105 @@
 #include "linked_list.h"
-#include <string.h>
 
-void ill_init(linked_list_t* list) {
+void ll_init(linked_list_t* list) {
     list->size = 0;
-    list->first = NULL;
-    list->last = NULL;
+    list->first = (ll_node_t*)0;
+    list->last = (ll_node_t*)0;
 }
 
-void ill_add_first_node(
+void ll_add_first_node(
     linked_list_t* list,
-    linked_list_node_t* node
+    ll_node_t* node
 ) {
     list->first = node;
     list->last = node;
-    node->next = NULL;
-    node->prev = NULL;
+    node->next = (ll_node_t*)0;
+    node->prev = (ll_node_t*)0;
 
     list->size += 1;
 }
 
-void ill_insert_after(
+void ll_insert_after(
     linked_list_t* list,
-    linked_list_node_t* node,
-    linked_list_node_t* new_node
+    ll_node_t* node,
+    ll_node_t* new_node
 ) {
+    if(node->next != (ll_node_t*)0) {
+        node->next->prev = new_node;
+    }
+    else {
+        list->last = new_node;
+    }
+
     new_node->next = node->next;
     new_node->prev = node;
     node->next = new_node;
 
-    if(new_node->next == NULL) {
-        list->last = new_node;
-    }
     list->size += 1;
 }
 
-void ill_insert_before(
+void ll_insert_before(
     linked_list_t* list,
-    linked_list_node_t* node,
-    linked_list_node_t* new_node
+    ll_node_t* node,
+    ll_node_t* new_node
 ) {
-    new_node->value = value;
+    if(node->prev != (ll_node_t*)0) {
+        node->prev->next = new_node;
+    }
+    else {
+        list->first = new_node;
+    }
+
     new_node->next = node;
     new_node->prev = node->prev;
     node->prev = new_node;
 
-    if(new_node->prev == NULL) {
-        list->first = new_node;
-    }
     list->size += 1;
 }
 
-void ill_delete(
-    void(*free)(linked_list_node_t*),
+void ll_delete(
     linked_list_t* list,
-    linked_list_node_t* node,
-    linked_list_node_t* new_node
+    ll_node_t* node
 ) {
-    if(list->first == node) {
-        list->last == node->next;
-    }
-    if(list->last == node) {
-        list->last == node->prev;
-    }
-    if(node->prev != NULL) {
+    if(node->prev != (ll_node_t*)0) {
         (node->prev)->next = node->next;
+    } else {
+        list->first = node->next;
     }
-    free(node);
+    if(node->next != (ll_node_t*)0) {
+        (node->next)->prev = node->prev;
+    } else {
+        list->last = node->prev;
+    }
     list-> size -= 1;
 }
 
-void ill_push_back(
+void ll_push_back(
     linked_list_t* list,
-    linked_list_node_t* node
+    ll_node_t* node
 ) {
-    if(list->last == NULL) {
-        ill_add_first_node(list, node);
+    if(list->last == (ll_node_t*)0) {
+        ll_add_first_node(list, node);
     } else {
-        ill_insert_after(list, list->last, node);
+        ll_insert_after(list, list->last, node);
     }
 }
 
-void ill_push_front(
+void ll_push_front(
     linked_list_t* list,
-    linked_list_node_t* node
+    ll_node_t* node
 ) {
-    if(list->first == NULL) {
-        ill_add_first_node(list, node);        
+    if(list->first == (ll_node_t*)0) {
+        ll_add_first_node(list, node);        
     } else {
-        ill_insert_before(list, list->first, node);
+        ll_insert_before(list, list->first, node);
     }
 }
 
-linked_list_node_t* ill_first(linked_list_t* list) {
+ll_node_t* ll_first(linked_list_t* list) {
     return list->first;
 }
 
-linked_list_node_t* ill_last(linked_list_t* list) {
+ll_node_t* ll_last(linked_list_t* list) {
     return list->last;
 }
 

@@ -16,8 +16,7 @@ void assert_sfb(
         printf(
             "ERROR: buffer size not %d: %d\n",
             size,
-            asize
-        );
+            asize);
     }
     unsigned int afront = irb_front(buffer);
     if(front != afront) {
@@ -70,22 +69,32 @@ typedef struct {
 
 typedef struct {
     fixed_block_array_alloc_t alloc;
-    unsigned int flist_mem[MEM_SIZE];
-    unsigned int fblock_mem[MEM_SIZE];
+    int flist_mem[MEM_SIZE];
+    int fblock_mem[MEM_SIZE];
     point_t memory[MEM_SIZE];
 } point_allocator_t;
 
 point_allocator_t point_allocator;
 
 point_t* point_malloc() {
-    return (point_t*) fbaa_malloc(&(point_allocator.alloc));
+    int block_index = fbaa_malloc(&(point_allocator.alloc));
+    if(block_index < 0) {
+        return NULL;
+    }
+    printf("allocating block %d\n", block_index);
+    return &(point_allocator.memory[block_index]);
 }
 
 void point_free(point_t* point) {
-    fbaa_free(&(point_allocator.alloc), (void*) point);
+    int block_index = (int)((
+            (unsigned long)point
+            - (unsigned long)point_allocator.memory
+        ) / sizeof(point_t));
+    printf("freeing block %d\n", block_index);
+    fbaa_free(&(point_allocator.alloc), block_index);
 }
 
-void print_mem(unsigned int* mem, unsigned int size) {
+void print_mem(int* mem, int size) {
     for(int i = 0; i < size; ++i) {
         printf("\t%d\n", mem[i]);
     }
@@ -96,9 +105,7 @@ void fbaa_test() {
         &(point_allocator.alloc),
         point_allocator.flist_mem,
         point_allocator.fblock_mem,
-        (void*) point_allocator.memory,
-        MEM_SIZE,
-        sizeof(point_t)
+        MEM_SIZE
     );
 
     printf("free list:\n");
@@ -152,7 +159,7 @@ void fbaa_test() {
     printf("full blocks:\n");
     print_mem(point_allocator.fblock_mem, MEM_SIZE);
     printf("memory:\n");
-    print_mem((unsigned int*)point_allocator.memory, MEM_SIZE * 2);
+    print_mem((int*)point_allocator.memory, MEM_SIZE * 2);
     
     printf(
         "free space: %d / %d\n",
@@ -184,7 +191,7 @@ void fbaa_test() {
     printf("full blocks:\n");
     print_mem(point_allocator.fblock_mem, MEM_SIZE);
     printf("memory:\n");
-    print_mem((unsigned int*)point_allocator.memory, MEM_SIZE * 2);
+    print_mem((int*)point_allocator.memory, MEM_SIZE * 2);
 }
 
 int main() {
