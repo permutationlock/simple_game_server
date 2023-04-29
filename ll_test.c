@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "linked_list.h"
-#include "fixed_block_array_allocator.h"
+#include "fbaa.h"
 
 #define MEM_SIZE 8
 
@@ -11,7 +11,7 @@ typedef struct ll_in_node_t {
 } ll_int_node_t;
 
 typedef struct {
-    fixed_block_array_alloc_t alloc;
+    fbaa_t alloc;
     int flist_mem[MEM_SIZE];
     int fblock_mem[MEM_SIZE];
     ll_int_node_t memory[MEM_SIZE];
@@ -100,21 +100,21 @@ void ll_test() {
     printf("STEP: pushing 11\n");
     ll_int_node_t* node = ll_malloc();
     node->val = 11;
-    ll_push_back(&list, (linked_list_node_t*)node);
+    ll_push_back(&list, (ll_node_t*)node);
     assert_sfb(&list, 1, 11, 11);
     printf("STEP: pushing 22\n");
     node = (ll_int_node_t*)ll_malloc();
     node->val = 22;
-    ll_push_back(&list, (linked_list_node_t*)node);
+    ll_push_back(&list, (ll_node_t*)node);
     assert_sfb(&list, 2, 11, 22);
     printf("STEP: popping front\n");
     node = (ll_int_node_t*)ll_first(&list);
-    ll_delete(&list, (linked_list_node_t*)node);
+    ll_delete(&list, (ll_node_t*)node);
     ll_free(node);
     assert_sfb(&list, 1, 22, 22);
     printf("STEP: popping front\n");
     node = (ll_int_node_t*)ll_last(&list);
-    ll_delete(&list, (linked_list_node_t*)node);
+    ll_delete(&list, (ll_node_t*)node);
     ll_free(node);
     assert_sfb(&list, 0, -1, -1);
 }

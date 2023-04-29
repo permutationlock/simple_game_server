@@ -2,6 +2,7 @@
 #define SGS_SIMPLE_GAME_SERVER_H
 
 #define PKEY_BYTES 16
+#define MEM_SIZE
 
 typename struct {
      unsigned int count;
@@ -9,10 +10,8 @@ typename struct {
 } player_t;
 
 typedef struct {
-    fixed_block_array_alloc_t alloc;
-    unsigned int free_list[MEM_SIZE];
-    unsigned int full_blocks[MEM_SIZE];
-    player_t players[MEM_SIZE];
+    ring_fbaa_t* alloc;
+    player_t* players;
 } player_allocator_t;
 
 #endif //SGS_SIMPLE_GAME_SERVER_H

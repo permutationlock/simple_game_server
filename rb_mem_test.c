@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "ring_buffer.h"
-#include "fixed_block_array_allocator.h"
+#include "fbaa.h"
 #include "ring_fbaa.h"
 
 #define BLOCKS 1000
@@ -35,7 +35,7 @@ void free_test(void** mem) {
 }
 
 typedef struct {
-    fixed_block_array_alloc_t alloc;
+    fbaa_t alloc;
     int flist_mem[BLOCKS];
     int fblock_mem[BLOCKS];
     point_t memory[BLOCKS];

@@ -1,8 +1,58 @@
-#include "fixed_block_array_allocator.h"
+#include "fbaa.h"
 //#include <stdio.h>
 
+int align_size(int size, int alignment) {
+    return size + (alignment - (size % alignment));
+}
+
+fbaa_t* fbaa_new(
+    void*(*malloc)(unsigned long),
+    int size,
+    int block_size
+) {
+    const int ALLOC_SIZE = align_size(
+        sizeof(fbaa_t),
+        16
+    );
+    const int IARRAY_SIZE = align_size(size * sizeof(int), 16);
+    int mem_size = ALLOC_SIZE;
+    mem_size += 2 * IARRAY_SIZE;
+    mem_size += size * block_size;
+
+    void* mem = malloc(mem_size);
+
+    if(mem == (void*)0) {
+        return (fbaa_t*)0;
+    }
+
+    fbaa_t* allocator =
+        (fbaa_t*)(mem);
+    mem += ALLOC_SIZE;
+    int* free_list_mem = (int*) mem;
+    mem += IARRAY_SIZE;
+    int* full_block_mem = (int*) mem;
+    mem += IARRAY_SIZE;
+
+    fbaa_init(
+        allocator,
+        free_list_mem,
+        full_block_mem,
+        mem,
+        size,
+        block_size
+    );
+    return allocator;
+}
+
+void fbaa_destroy(
+    void(*free)(void*),
+    fbaa_t* allocator
+) {
+    free((void*)allocator);
+}
+
 void fbaa_clear(
-    fixed_block_array_alloc_t* allocator
+    fbaa_t* allocator
 ) {
     rb_clear(&(allocator->flist_rb));
     for(int i = 0; i < allocator->size; ++i) {
@@ -14,7 +64,7 @@ void fbaa_clear(
 }
 
 void fbaa_init(
-    fixed_block_array_alloc_t* allocator,
+    fbaa_t* allocator,
     int* flist_mem,
     int* fblock_mem,
     void* memory,
@@ -43,7 +93,7 @@ void fbaa_init(
     }
 }
 
-void* fbaa_malloc(fixed_block_array_alloc_t* allocator) {
+void* fbaa_malloc(fbaa_t* allocator) {
     int block_index = fbaa_malloc_index(allocator); 
     if(block_index < 0) {
         return (void*)0;
@@ -51,7 +101,7 @@ void* fbaa_malloc(fixed_block_array_alloc_t* allocator) {
     return allocator->memory + block_index * allocator->block_size;
 }
 
-int fbaa_malloc_index(fixed_block_array_alloc_t* allocator) {
+int fbaa_malloc_index(fbaa_t* allocator) {
     if(rb_size(&allocator->flist_rb) == 0) {
         return -1;
     }
@@ -64,7 +114,7 @@ int fbaa_malloc_index(fixed_block_array_alloc_t* allocator) {
 }
 
 void fbaa_free(
-    fixed_block_array_alloc_t* allocator,
+    fbaa_t* allocator,
     void* mem
 ) {
     int block_index = ((long)(mem - allocator->memory))
@@ -73,7 +123,7 @@ void fbaa_free(
 }
 
 void fbaa_free_index(
-    fixed_block_array_alloc_t* allocator,
+    fbaa_t* allocator,
     int block_index
 ) {
     if(allocator->full_blocks[block_index] != 0) {
@@ -84,6 +134,6 @@ void fbaa_free_index(
     }
 }
 
-int fbaa_available(fixed_block_array_alloc_t* allocator) {
+int fbaa_available(fbaa_t* allocator) {
     return rb_size(&(allocator->flist_rb));
 }
