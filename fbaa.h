@@ -1,5 +1,5 @@
-#ifndef SGS_FIXED_BLOCK_ARRAY_ALLOC_H
-#define SGS_FIXED_BLOCK_ARRAY_ALLOC_H
+#ifndef SGS_FBAA_H
+#define SGS_FBAA_H
 
 #include "ring_buffer.h"
 
@@ -45,4 +45,4 @@ void fbaa_free_index(
 );
 int fbaa_available(fbaa_t* allocator);
 
-#endif // SGS_FIXED_BLOCK_ARRAY_ALLOC_H
+#endif // SGS_FBAA_H

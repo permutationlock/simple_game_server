@@ -106,6 +106,9 @@ void rfbaa_init(
 
 void* rfbaa_malloc(ring_fbaa_t* allocator) {
     int block_index = rfbaa_malloc_index(allocator);
+    if(block_index == -1) {
+        return (void*)0;
+    }
     return allocator->mem_alloc.memory
         + block_index * allocator->mem_alloc.block_size;
 }
@@ -113,12 +116,7 @@ void* rfbaa_malloc(ring_fbaa_t* allocator) {
 int rfbaa_malloc_index(ring_fbaa_t* allocator) {
     int block_index = fbaa_malloc_index(&(allocator->mem_alloc));
     if(block_index == -1) {
-        ring_fbaa_ll_node_t* n = (ring_fbaa_ll_node_t*)ll_first(
-            &(allocator->ll)
-        );
-        rfbaa_free_index(allocator, n->block_index);
-
-        return rfbaa_malloc_index(allocator);
+        return -1;
     }
 
     ring_fbaa_ll_node_t* n = (ring_fbaa_ll_node_t*)fbaa_malloc(
@@ -169,6 +167,18 @@ int rfbaa_oldest_index(ring_fbaa_t* allocator) {
         return -1;
     }
     return n->block_index;
+}
+
+void rfbaa_free_oldest(ring_fbaa_t* allocator) {
+    ring_fbaa_ll_node_t* n = (ring_fbaa_ll_node_t*)ll_first(
+        &(allocator->ll)
+    );
+    if(n == (ring_fbaa_ll_node_t*)0) {
+        return;
+    }
+    fbaa_free_index(&(allocator->mem_alloc), n->block_index);
+    ll_delete(&(allocator->ll), (ll_node_t*)n);
+    fbaa_free(&(allocator->ll_alloc), (void*)n);
 }
 
 void rfbaa_renew(ring_fbaa_t* allocator, void* mem) {
