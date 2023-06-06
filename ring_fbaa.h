@@ -16,6 +16,12 @@ typedef struct {
     ring_fbaa_ll_node_t** ll_nodes;
 } ring_fbaa_t;
 
+unsigned long rfbaa_mem_size(int size, int block_size);
+ring_fbaa_t* rfbaa_new_from_void(
+    void* mem,
+    int size,
+    int block_size
+);
 ring_fbaa_t* rfbaa_new(
     void*(*malloc)(unsigned long),
     int size,
@@ -54,9 +60,12 @@ void rfbaa_free_index(
 void* rfbaa_oldest(ring_fbaa_t* allocator);
 int rfbaa_oldest_index(ring_fbaa_t* allocator);
 
+void rfbaa_free_oldest(ring_fbaa_t* allocator);
+
 void rfbaa_renew(ring_fbaa_t* allocator, void* mem);
 void rfbaa_renew_index(ring_fbaa_t* allocator, int block_index);
 
 int rfbaa_available(ring_fbaa_t* allocator);
+int rfbaa_size(ring_fbaa_t* allocator);
 
 #endif // SGS_RING_FBAA_H

@@ -11,6 +11,7 @@ void rb_init(
     int size
 );
 int rb_push_back(ring_buffer_t* buffer);
+int rb_push_front(ring_buffer_t* buffer);
 void rb_pop_back(ring_buffer_t* buffer);
 void rb_pop_front(ring_buffer_t* buffer);
 int rb_back(ring_buffer_t* buffer);

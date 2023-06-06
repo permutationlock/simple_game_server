@@ -1,8 +1,29 @@
 #include "ring_fbaa.h"
 //#include <stdio.h>
 
-ring_fbaa_t* rfbaa_new(
-    void*(*malloc)(unsigned long),
+unsigned long rfbaa_mem_size(int size, int block_size) {
+    const int ALLOC_SIZE = align_size(sizeof(ring_fbaa_t), 16);
+    const int IARRAY_SIZE = align_size(size * sizeof(int), 16);
+    const int NARRAY_SIZE = align_size(
+        size * sizeof(ring_fbaa_ll_node_t),
+        16
+    );
+    const int PARRAY_SIZE = align_size(
+        size * sizeof(ring_fbaa_ll_node_t*),
+        16
+    );
+
+    int mem_size = ALLOC_SIZE;
+    mem_size += 4 * IARRAY_SIZE;
+    mem_size += PARRAY_SIZE;
+    mem_size += NARRAY_SIZE;
+    mem_size += size * block_size;
+
+    return mem_size;
+}
+
+ring_fbaa_t* rfbaa_new_from_void(
+    void* mem,
     int size,
     int block_size
 ) {
@@ -16,17 +37,6 @@ ring_fbaa_t* rfbaa_new(
         size * sizeof(ring_fbaa_ll_node_t*),
         16
     );
-    int mem_size = ALLOC_SIZE;
-    mem_size += 4 * IARRAY_SIZE;
-    mem_size += PARRAY_SIZE;
-    mem_size += NARRAY_SIZE;
-    mem_size += size * block_size;
-
-    void* mem = malloc(mem_size);
-
-    if(mem == (void*)0) {
-        return (ring_fbaa_t*)0;
-    }
 
     ring_fbaa_t* allocator = (ring_fbaa_t*)(mem);
     mem += ALLOC_SIZE;
@@ -58,6 +68,20 @@ ring_fbaa_t* rfbaa_new(
         block_size
     );
     return allocator;
+}
+
+ring_fbaa_t* rfbaa_new(
+    void*(*malloc)(unsigned long),
+    int size,
+    int block_size
+) {
+    void* mem = malloc(rfbaa_mem_size(size, block_size));
+
+    if(mem == (void*)0) {
+        return (ring_fbaa_t*)0;
+    }
+
+    return rfbaa_new_from_void(mem, size, block_size);
 }
 
 void rfbaa_destroy(void(*free)(void*), ring_fbaa_t* allocator) {
@@ -198,4 +222,8 @@ void rfbaa_renew_index(ring_fbaa_t* allocator, int block_index) {
 
 int rfbaa_available(ring_fbaa_t* allocator) {
     return fbaa_available(&(allocator->mem_alloc));
+}
+
+int rfbaa_size(ring_fbaa_t* allocator) {
+    return fbaa_size(&(allocator->mem_alloc));
 }

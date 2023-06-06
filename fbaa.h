@@ -13,18 +13,15 @@ typedef struct {
     void* memory;
 } fbaa_t;
 
+unsigned long fbaa_mem_size(int size, int block_size);
+fbaa_t* fbaa_new_from_void(void* mem, int size, int block_size);
 fbaa_t* fbaa_new(
     void*(*malloc)(unsigned long),
     int size,
     int block_size
 );
-void fbaa_destroy(
-    void(*free)(void*),
-    fbaa_t* allocator
-);
-void fbaa_clear(
-    fbaa_t* allocator
-);
+void fbaa_destroy(void(*free)(void*), fbaa_t* allocator);
+void fbaa_clear(fbaa_t* allocator);
 void fbaa_init(
     fbaa_t* allocator,
     int* flist_mem,
@@ -44,5 +41,6 @@ void fbaa_free_index(
     int block_index
 );
 int fbaa_available(fbaa_t* allocator);
+int fbaa_size(fbaa_t* allocator);
 
 #endif // SGS_FBAA_H

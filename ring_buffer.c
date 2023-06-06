@@ -25,6 +25,19 @@ int rb_push_back(ring_buffer_t* buffer) {
     return old_back;
 }
 
+int rb_push_front(ring_buffer_t* buffer) {
+    if(buffer->size == buffer->max) {
+        return -1;
+    }
+    if(buffer->size == 0) {
+        buffer->front = (buffer->front + 1) % buffer->max; 
+    }
+
+    buffer->size += 1;
+    buffer->front = (buffer->front + (buffer->max - 1)) % buffer->max;
+    return buffer->front;
+}
+
 void rb_pop_back(ring_buffer_t* buffer) {
     if(buffer->size == 0) {
         return;

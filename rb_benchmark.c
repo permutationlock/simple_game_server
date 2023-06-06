@@ -158,29 +158,8 @@ void time_rfbaa() {
     );
 }
 
-void time_rfbaa_replacement() {
-    double times[4];
-    rfbaa = rfbaa_new(malloc, BLOCKS / 8, 4);
-    times[0] = time_fn(test_rfbaa);
-    rfbaa_destroy(free, rfbaa);
-    rfbaa = rfbaa_new(malloc, BLOCKS / 8, 64);
-    times[1] = time_fn(test_rfbaa);
-    rfbaa_destroy(free, rfbaa);
-    rfbaa = rfbaa_new(malloc, BLOCKS / 8, 512);
-    times[2] = time_fn(test_rfbaa);
-    rfbaa_destroy(free, rfbaa);
-    rfbaa = rfbaa_new(malloc, BLOCKS / 8, 1024);
-    times[3] = time_fn(test_rfbaa);
-    rfbaa_destroy(free, rfbaa);
-    printf(
-        "rfbaa_malloc2\t%f\t%f\t%f\t%f\n",
-        times[0], times[1], times[2], times[3]
-    );
-}
-
 int main() {
     time_malloc();
     time_fbaa();
     time_rfbaa();
-    time_rfbaa_replacement();
 }
