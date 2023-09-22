@@ -4,7 +4,9 @@ A learning project making a game server in C from scratch.
 The server was not completed, and won't currently build. I was working
 very fast and loose, and the build system is simply shell scripts.
 
-The data structures are the most complete and interesting part of this repo:
+The data structures are the most complete and interesting part of this repo. All
+the corresponding benchmarks and "tests" (not really tests, but printf checks)
+should all build and run.
 
  - The `fbaa.*` files define a simple fixed capacity item pool allocator
 (or "fixed-block array allocator" as I refered to it at the time).
