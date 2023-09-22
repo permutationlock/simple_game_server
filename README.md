@@ -5,7 +5,7 @@ included. The server was not completed, and won't currently build. I was working
 very fast and loose, and the build system is simply shell scripts.
 
 The data structures are the most interesting and complete part of this repo.
-The corresponding benchmarks and tests should all build and work.
+The corresponding benchmarks and "tests" should all build and work.
 
 This project moved to [Zig][1] and became the Zig game server [thierd][2].
 
