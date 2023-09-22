@@ -5,7 +5,7 @@ void rbt_init(rbt_t* rbt) {
     rbt->root = (rbt_node_t*)0;
 }
 
-void rbt_init_node(rbt_node_t* node, int key, int val) {
+void rbt_init_node(rbt_node_t* node, long key, int val) {
     node->left = (rbt_node_t*)0;
     node->right = (rbt_node_t*)0;
     node->color = RED;
@@ -34,7 +34,7 @@ void rbt_insert(rbt_t* rbt, rbt_node_t* new_node) {
     rbt->size += 1;
 }
 
-rbt_node_t* rbt_find(rbt_t* rbt, int key) {
+rbt_node_t* rbt_find(rbt_t* rbt, long key) {
     rbt_node_t* node = rbt->root;
     while(node != (rbt_node_t*)0) {
         if(key == node->key) {
@@ -75,7 +75,7 @@ rbt_node_t* rbt_delete_min(rbt_node_t* node, rbt_node_t** min) {
 }
 
 rbt_node_t* rbt_delete_rec(
-    rbt_node_t* node, int key, rbt_node_t** dnode
+    rbt_node_t* node, long key, rbt_node_t** dnode
 ) {
     if(key < node->key) {
         if(!rbt_is_red(node->left) && node->left != (rbt_node_t*)0) {
@@ -113,7 +113,7 @@ rbt_node_t* rbt_delete_rec(
     return rbt_balance(node);
 }
 
-rbt_node_t* rbt_delete(rbt_t* rbt, int key) {
+rbt_node_t* rbt_delete(rbt_t* rbt, long key) {
     //rbt_node_t* node = rbt_find(rbt, key);
     //if(node == (rbt_node_t*)0) {
     //    return (rbt_node_t*)0;

@@ -176,7 +176,7 @@ void test_delete() {
         printf("\tERROR: delete returned null\n");
     } else if(5 != fnode->key) {
         printf(
-            "\tERROR: deleted node does not match key %d: %d\n",
+            "\tERROR: deleted node does not match key %d: %ld\n",
             5, fnode->key
         );
     }

@@ -205,6 +205,11 @@ int sgs_adb_new(sgs_account_database_t* adb, int fd, int size) {
 }
 
 void sgs_adb_destroy(sgs_account_database_t* adb) {
+    msync(
+        (void*)adb->account_allocator,
+        rfbaa_mem_size(adb->size, sizeof(sgs_account_t)),
+        MS_SYNC
+    );
     munmap(
         (void*)adb->account_allocator,
         rfbaa_mem_size(adb->size, sizeof(sgs_account_t))
@@ -274,49 +279,6 @@ int sgs_adb_set_data(
     return 0;
 }
 
-int sgs_mm_new(
-    sgs_matchmaker_t* mm, int size
-) {
-    mm->size = size;
-    mm->player_allocator = fbaa_new(
-        malloc, size, sizeof(sgs_player_t)
-    );
-    if(mm->player_allocator == (fbaa_t*)0) {
-        return -1;
-    }
-    mm->players = (sgs_player_t*)mm->player_allocator->memory;
-    return 0;
-}
-
-void sgs_mm_destroy(sgs_matchmaker_t* mm) {
-    fbaa_destroy(free, mm->player_allocator);
-}
-
-int sgs_mm_create(
-    sgs_matchmaker_t* mm,
-    int session_id,
-    int account_id
-) {
-    int player_id = fbaa_malloc_index(mm->player_allocator);
-    if(player_id < 0) {
-        return -1;
-    }
-
-    sgs_player_t* player = &(
-        mm->players[player_id]
-    );
-    player->account_id = session_id;
-    player->session_id = session_id;
-    return player_id;
-}
-
-void sgs_mm_delete(
-    sgs_matchmaker_t* mm,
-    int player_id
-) {
-    fbaa_free_index(mm->player_allocator, player_id);
-}
-
 int sgs_gs_new(
     sgs_game_server_t* gs, int size
 ) {
@@ -375,7 +337,7 @@ int sgs_ss_create(
     int sfd,
     int account_id
 ) {
-    int nonce;
+    sgs_session_nonce_t nonce;
     if(
         getrandom(
             &nonce,
@@ -474,7 +436,7 @@ sgs_t* sgs_new(
         free((void*)sgs);
         return (sgs_t*)0;
     }
-    if(sgs_mm_new(&(sgs->matchmaker), players) < 0) {
+    if(sgs_ss_new(&(sgs->session_server), players) < 0) {
         close(adb_fd);
         sgs_adb_destroy(&(sgs->account_db));
         free((void*)sgs);
@@ -483,7 +445,7 @@ sgs_t* sgs_new(
     if(sgs_gs_new(&(sgs->game_server), games) < 0) {
         close(adb_fd);
         sgs_adb_destroy(&(sgs->account_db));
-        sgs_mm_destroy(&(sgs->matchmaker));
+        sgs_ss_destroy(&(sgs->session_server));
         free((void*)sgs);
         return (sgs_t*)0;
     }
@@ -505,7 +467,7 @@ void sgs_destroy(sgs_t* sgs) {
     close(sgs->server_fd);
     close(sgs->epoll_fd);
     sgs_adb_destroy(&(sgs->account_db));
-    sgs_mm_destroy(&(sgs->matchmaker));
+    sgs_ss_destroy(&(sgs->session_server));
     sgs_gs_destroy(&(sgs->game_server));
     free((void*)sgs);
 }
@@ -681,67 +643,32 @@ void sgs_disconnect_session(
     sgs_ss_delete(&(sgs->session_server), session_id);
 }
 
-int sgs_create_player(
+int sgs_send_logout_token(
     sgs_t* sgs,
     int session_id
 ) {
     sgs_session_t* session = &(
         sgs->session_server.sessions[session_id]
     );
-    session->player_id = sgs_mm_create(
-        &(sgs->matchmaker),
-        session->account_id,
-        session_id
-    );
-    return session->player_id;
-}
-
-void sgs_delete_player(
-    sgs_t* sgs,
-    int player_id
-) {
-    sgs_mm_delete(&(sgs->matchmaker), player_id);
 }
 
 int sgs_create_game(
     sgs_t* sgs,
-    int player_ids[SGS_GAME_MAX_PLAYERS],
+    int session_ids[SGS_GAME_MAX_PLAYERS],
     int nplayers
 ) {
     int game_id = sgs_gs_create(&(sgs->game_server));
-
-    // if there is no space, check if any games are done
-    if(game_id < 0) {
-        game_id = sgs_gs_get_oldest(&(sgs->game_server));
-        sgs_game_t* game = &(sgs->game_server.games[game_id]);
-        if(game->state != SGS_GS_DONE) {
-            return -1;
-        }
-
-        // game is done, but some players dc'ed, so force close
-        sgs_force_close_game(sgs, game_id);
-
-        game_id = sgs_gs_create(&(sgs->game_server));
-    }
-
     sgs_game_t* game = &(sgs->game_server.games[game_id]);
     game->player_count = nplayers;
     game->state = SGS_GS_PLAYING;
+
     for(int i = 0; i < nplayers; ++i) {
-        sgs_player_t* player = &(
-            sgs->matchmaker.players[player_ids[i]]
-        );
         sgs_session_t* session = &(
-            sgs->session_server.sessions[player->session_id]
+            sgs->session_server.sessions[session_ids[i]]
         );
         session->game_id = game_id;
         session->player_id = i;
-        memcpy(
-            &(game->players[i]),
-            player,
-            sizeof(sgs_player_t)
-        );
-        sgs_delete_player(sgs, player_ids[i]);
+        game->player_session_ids[i] = session_id;
     }
 
     return game_id;
@@ -755,8 +682,10 @@ void sgs_close_game(
 
     if(game->state != SGS_GS_DONE) {
         for(int i = 0; i < game->player_count; ++i) {
-            sgs_player_t* player = &(game->players[i]);
-            if(player->account_id < 0) {
+            sgs_session_t* session = &(
+                sgs->session_server.sessions[game->session_ids[i]]
+            );
+            if(session->account_id < 0) {
                 continue;
             }
             sgs_adb_set_data(

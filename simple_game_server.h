@@ -121,12 +121,12 @@ typedef struct {
 
 typedef struct {
     int account_id;
-    sgs_player_data_extended_t;
+    sgs_player_data_extended_t data_extended;
 } sgs_player_login_data_t;
 
 typedef struct {
     int account_id;
-    SGS_PLAYER_DATA_T dat;
+    SGS_PLAYER_DATA_T data;
 } sgs_player_logout_data_t;
 
 typedef struct {
@@ -157,30 +157,8 @@ int sgs_adb_set_data(
 );
 
 typedef struct {
-    int account_id;
     int session_id;
-    SGS_PLAYER_DATA_T data;
 } sgs_player_t;
-
-typedef struct {
-    int size;
-    fbaa_t* player_allocator;
-    sgs_player_t* players;
-} sgs_matchmaker_t;
-
-int sgs_mm_new(
-    sgs_matchmaker_t* mm, int size
-);
-void sgs_mm_destroy(sgs_matchmaker_t* mm);
-int sgs_mm_create(
-    sgs_matchmaker_t* mm,
-    int session_id,
-    int account_id
-);
-void sgs_mm_delete(
-    sgs_matchmaker_t* gs,
-    int player_id
-);
 
 enum sgs_game_state_t {
     SGS_GS_PLAYING,
@@ -190,14 +168,14 @@ enum sgs_game_state_t {
 typedef struct {
     enum sgs_game_state_t state;
     int player_count;
-    sgs_player_t players[SGS_GAME_MAX_PLAYERS];
+    int player_session_ids[SGS_GAME_MAX_PLAYERS];
     SGS_GAME_MESSAGE_T messages[SGS_GAME_MAX_PLAYERS];
     SGS_GAME_DATA_T game_data;
 } sgs_game_t;
 
 typedef struct {
     int size;
-    ring_fbaa_t* game_allocator;
+    fbaa_t* game_allocator;
     sgs_game_t* games;
 } sgs_game_server_t;
 
@@ -207,20 +185,30 @@ int sgs_gs_new(
 void sgs_gs_destroy(sgs_game_server_t* gs);
 int sgs_gs_create(sgs_game_server_t* gs);
 void sgs_gs_delete(sgs_game_server_t* gs, int game_id);
-int sgs_gs_get_oldest(sgs_game_server_t* gs);
+
+typedef struct { uint8_t data[12]; } sgs_session_nonce_t;
+
+typedef enum {
+    SGS_PDS_EMPTY = 0,
+    SGS_PDS_CURRENT,
+    SGS_PDS_ADVANCED
+} sgs_player_data_state_t;
 
 typedef struct {
     int socket_fd;
     int account_id;
-    int player_id;
+    int party_id;
     int game_id;
-    int nonce;
+    int player_id;
     int verified;
+    sgs_player_data_state_t data_state;
+    sgs_session_nonce_t nonce;
+    sgs_player_data_extended_t data;
 } sgs_session_t;
 
 typedef struct {
     int size;
-    fbaa_t* session_allocator;
+    ring_fbaa_t* session_allocator;
     array_rbt_t* session_map;
     sgs_session_t* sessions;
 } sgs_session_server_t;
@@ -265,10 +253,10 @@ typedef struct {
 enum sgs_error_t {
     SGS_CONN_CLOSED,
     SGS_INV_MSG_TYPE,
+    SGS_INV_MSG_ENCTYPE,
     SGS_INV_MSG_LEN,
     SGS_NO_ROOM_CONN,
     SGS_NO_ROOM_SS,
-    SGS_NO_ROOM_MM,
     SGS_INV_PDATA,
     SGS_INV_RTOKEN,
     SGS_SESSION_IN_PROGRESS,
@@ -280,7 +268,6 @@ typedef struct sockaddr_in sockaddr_in_t;
 
 typedef struct {
     sgs_account_database_t account_db;
-    sgs_matchmaker_t matchmaker;
     sgs_game_server_t game_server;
     sgs_session_server_t session_server;
     int epoll_fd, server_fd, adb_fd;
@@ -332,14 +319,6 @@ int sgs_connect_session(
 void sgs_disconnect_session(
     sgs_t* sgs,
     int session_id
-);
-int sgs_create_player(
-    sgs_t* sgs,
-    int session_id
-);
-void sgs_delete_player(
-    sgs_t* sgs,
-    int player_id
 );
 int sgs_session_in_game(
     sgs_t* sgs,
